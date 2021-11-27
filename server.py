@@ -8,7 +8,9 @@ import cryptography
 from cryptography.fernet import Fernet
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
-from Crypto.Hash import SHA512
+from Encryption import KSA, PRGA
+from Hash import calcHashSHA3
+from client import llave_to_array
 #######################################################
 #                   INITIALIZATION
 #######################################################
@@ -29,35 +31,6 @@ server.listen()
 
 client_list = []
 nicknames = []
-
-def calcHashSHA3(msg):
-    msgHashed = SHA512.new()
-    msgHashed.update(msg.encode())
-    return msgHashed.hexdigest()
-def KSA(llave):
-    longitud_llave = len(llave)
-    S = list(range(256))
-    j = 0
-    for i in range(256):
-        j = (j + S[i] + llave[i%longitud_llave]) % 256
-        S[i], S[j] = S[j], S[i]
-    return S
-def PRGA(S,n):
-    i = 0
-    j = 0
-    llave = []
-
-    while n>0:
-        n = n - 1
-        i = (i + 1) % 256
-        j = (j + S[i]) % 256
-        S[i], S[j] = S[j], S[i]
-        K = S[ (S[i] + S[j]) % 256 ]
-        llave.append(K)
-    return llave
-
-def llave_to_array(llave):
-    return [ord(c) for c in llave]
 
 def encriptarLlavePriv(llavePriv,claveRC):
     

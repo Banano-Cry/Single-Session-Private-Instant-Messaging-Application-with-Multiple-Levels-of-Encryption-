@@ -8,7 +8,10 @@ import cryptography
 from cryptography.fernet import Fernet
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
-from Crypto.Hash import MD5, SHA512
+from Encryption import llave_to_array
+from Hash import calcHashMD5, calcHashSHA3, checkHashMD5
+from Messages import commands, disclaimer, integridadComprometida
+from server import PRGA, KSA
 
 try:
     PORT = 19188
@@ -25,20 +28,6 @@ except ValueError as e:
     print(e)
     input()
 
-def calcHashSHA3(msg):
-    msgHashed = SHA512.new()
-    msgHashed.update(msg.encode())
-    return msgHashed.hexdigest()
-def commands(command):
-    if(command[1:] == "help"):
-        print(chr(27)+'[1;33m',end="")
-        print("\n\t[*]Lista de comandos[*]")
-        print("\t[1]/exit --> Salir del servidor")
-
-    elif(command[1:] == "exit"):
-        print("Cerrando conexion...")
-        client.close()
-        os._exit(0)
 def write():
     while True:
         msg = input("> ")
@@ -50,26 +39,14 @@ def write():
             continue
 
         elif(msg[0] == "/"):
-            commands(msg)
+            commands(msg,client)
 
         else:
             msg = msg + calcHashMD5(msg)
-            msg = encriptarMsg(msg,LlaveSim) #jejejeje
+            msg = encriptarMsg(msg,LlaveSim)
             data = f"$ {nickname}: {msg}"
             client.send(data.encode(FORMAT))
-def disclaimer():
-    print(chr(27) + '[1;31m',end="")
-    print("\t\t\t\t***********************************************")
-    print("\t\t\t\t*                  DISCLAIMER                 *")
-    print("\t\t\t\t***********************************************")
-    print(chr(27) + '[1;37m',end="")
-    print("\t\tPara facilidad en la visualizacion, los mensajes que envie el usuario se pondran de color amarillo:")
-    print(chr(27) + '[1;33m'+'\t\tEjemplo')
-    print(chr(27) + '[1;37m'+'\t\tLos mensajes que reciba de otro cliente se pondran en morado:')
-    print(chr(27) + '[1;35m'+'\t\tEjemplo')
-    print(chr(27) + '[1;37m',end="\n")
-    print(chr(27)+'[1;33m'+"\t\t\t\t[INFO] para ver los comandos escribir '/help' [INFO]")
-    print(chr(27)+'[0;37m',end="")
+
 def receive():
     global LlavePrivada
     global LlaveSim
@@ -123,30 +100,7 @@ def receive():
             print(e)
             client.close()
             os._exit(0)
-            break
-def KSA(llave):
-    longitud_llave = len(llave)
-    S = list(range(256))
-    j = 0
-    for i in range(256):
-        j = (j + S[i] + llave[i%longitud_llave]) % 256
-        S[i], S[j] = S[j], S[i]
-    return S
-def PRGA(S,n):
-    i = 0
-    j = 0
-    llave = []
 
-    while n>0:
-        n = n - 1
-        i = (i + 1) % 256
-        j = (j + S[i]) % 256
-        S[i], S[j] = S[j], S[i]
-        K = S[ (S[i] + S[j]) % 256 ]
-        llave.append(K)
-    return llave
-def llave_to_array(llave):
-    return [ord(c) for c in llave]
 def desencriptarLlavePriv(LlavePriv, ClaveRC):
   
     llave = llave_to_array(ClaveRC)
@@ -167,8 +121,8 @@ def desencriptarLlavePriv(LlavePriv, ClaveRC):
     NuevaLlavePriv = "".join([chr(c) for c in NuevaLlavePriv])
     #print("nueva llave priv desencriptada")
     #print(NuevaLlavePriv)
-
     return NuevaLlavePriv
+
 def desencriptarLlaveSimetrica(LlaveSimetricaEnc, LlavePrivada):
     try:
         # Private RSA key
@@ -181,10 +135,7 @@ def desencriptarLlaveSimetrica(LlaveSimetricaEnc, LlavePrivada):
         return LlaveSimetricaDes
     except ValueError as e:
         print("Error Tecnico: " + str(e))
-def calcHashMD5(msg): 
-    msgHashed = MD5.new()
-    msgHashed.update(msg.encode())
-    return msgHashed.hexdigest()
+
 def encriptarMsg(msg, LlaveSimetrica): #solo prueba
 
     #msgHash = calcHash(msg)
@@ -195,27 +146,6 @@ def encriptarMsg(msg, LlaveSimetrica): #solo prueba
     #print("Mensaje encriptado: " + str(encrypted))
     return encrypted
 
-def checkHashMD5(msg):
-    hash = msg[-32:]
-    msg = msg[:-32]
-    if hash == calcHashMD5(msg):
-        return (False, msg)
-    else:
-        return (True, msg)
-
-def integridadComprometida():
-    print(chr(27)+'[1;33m',end="")
-    print("\t\t\t\t***********************************************")
-    print("\t\t\t\t*           INTEGRIDAD COMPROMETIDA           *")
-    print("\t\t\t\t***********************************************")
-    print("[*] El servidor ha sido informado del problema, desesa salir? [Y] [N]")
-    res = input("[*] ")
-    if res.lower() == "n":
-        return True
-    elif res.lower() == "y":
-        print("[-] El programa se cerrara...")
-        client.close()
-        os._exit(0)
 def desencriptarMsg(msg, LlaveSimetrica): #solo prueba
     #print(msg)
     newMsg = msg.split("*",1)
@@ -230,15 +160,14 @@ def desencriptarMsg(msg, LlaveSimetrica): #solo prueba
         decrypted = fernet.decrypt(str.encode(msg4[1])).decode()
         verify, msg = checkHashMD5(decrypted)
         if verify:
-            print(chr(27)+'[1;31m',end="")
-            print("[-] INTEGRIDAD COMPROMETIDA, EL MENSAJE NO CORRESPONDE CON EL HASH")
-            integridadComprometida()
+            integridadComprometida(client)
             print(chr(27)+'[0;37m',end="")
 
         return nick, msg
         #newMsg = "".join(i for i in newMsg)
     except Exception as e:
         print(e) 
+
 def sendRC4():
     global clave_rc4
     while True:
