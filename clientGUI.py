@@ -29,18 +29,33 @@ except ValueError as e:
     print(e)
     os._exit(0)
 
-sg.theme('GreenTan') 
-layout = [[sg.Text('Chat', size=(40, 1))],
+sg.theme('DarkAmber')
+
+layout_chat_box = [[sg.Text('Chat', size=(40, 1))],
           [sg.Output(size=(110, 20), font=('Helvetica 10'))],
           [sg.Multiline(size=(70, 5), enter_submits=True, key='-QUERY-', do_not_clear=False),
            sg.Button('SEND', button_color=(sg.YELLOWS[0], sg.BLUES[0]), bind_return_key=True),
            sg.Button('EXIT', button_color=(sg.YELLOWS[0], sg.GREENS[0]))]]
 
-window = sg.Window('Chat window', layout, font=('Helvetica', ' 13'), default_button_element_size=(8,2), use_default_focus=False)
+window_chat_box = sg.Window('Chat window', layout_chat_box, font=('Helvetica', ' 13'), default_button_element_size=(8,2), use_default_focus=False)
+
+def askName():
+    layout_start_menu = [[sg.Text('Write your username:')],
+                        [sg.InputText(key='-NAME-')],
+                        [sg.Submit(), sg.Button('Exit')]]
+
+    window_start_menu = sg.Window('SignIn', layout_start_menu)
+    event, values = window_start_menu.read()
+    if event == sg.WIN_CLOSED or event == 'Exit':
+        window_start_menu.close()
+        os._exit(0)
+    name=values['-NAME-']
+    window_start_menu.close()
+    return name
 
 def write():
     while True:
-        event, value = window.read()
+        event, value = window_chat_box.read()
         if event in (sg.WIN_CLOSED, 'EXIT'):
             break
         if event == 'SEND':
@@ -61,7 +76,7 @@ def write():
 
                 except Exception as e:
                     print("Error in [write] {Error with client sending message}:",e)
-    window.close()
+    window_chat_box.close()
     os._exit(0)
 
 def receive():
@@ -137,7 +152,7 @@ def desencriptarLlaveSimetrica(LlaveSimetricaEnc, LlavePrivada):
         private_key = RSA.import_key(LlavePrivada)
         private_crypter = PKCS1_OAEP.new(private_key)
         LlaveSimetricaDes = private_crypter.decrypt(LlaveSimetricaEnc)
-        print('Llave simetrica desencriptada exitosamente!')
+        #print('Llave simetrica desencriptada exitosamente!')
         return LlaveSimetricaDes
     except Exception as e:
         print("Error in [DesencriptarLlaveSimetrica]:",e)
@@ -170,10 +185,19 @@ def desencriptarMsg(msg, LlaveSimetrica):
 
 def sendRC4():
     global clave_rc4
+    layout_password = [[sg.Text('Type the password:')],
+          [sg.Input(key='-PASSWORD-')],
+          [sg.Button('Submit',bind_return_key=True),
+            sg.Button('Exit')]]
+
+    window_password = sg.Window('Request Password', layout_password)
     while True:
         try:
-            print(chr(27)+'[0;37m',end="")
-            clave_rc4 = input("Ingrese la clave acordada entre los clientes: ")
+            event, values = window_password.read()
+            if event == sg.WIN_CLOSED or event == 'Exit':
+                break
+            if event == 'Submit':
+                clave_rc4 = values['-PASSWORD-']
             try:
                 client.send(calcHashSHA3(clave_rc4).encode(FORMAT))
             except Exception as e:
@@ -186,14 +210,14 @@ def sendRC4():
 
             try:
                 if codeNumber == 200:
+                    window_password.close()
                     return True
                 elif codeNumber == 400:
-                    print(chr(27)+'[1;33m',end="")
-                    print("[-] Clave incorrecta")
+                    sg.popup("You have entered an incorrect password")
                     continue
                 elif codeNumber == 500:
-                    print(chr(27)+'[1;31m',end="")
-                    print("[-] El servidor te desconecto")
+                    sg.popup("The server has disconnected you")
+                    window_password.close()
                     client.close()
                     os._exit(0)
             except Exception as e:
@@ -201,7 +225,9 @@ def sendRC4():
 
         except Exception as e:
             print("Error in [SendRC4]:",e)
-        
+    window_password.close()
+    return False
+
 def startClient():
     try:
         client.connect(ADDR)
@@ -210,10 +236,11 @@ def startClient():
         print("Error in [StartClient]:",e)
 
 def main():
-    try:
-        disclaimer()
+
+    '''try:
+        thread_write = threading.Thread(target=write)
     except Exception as e:
-        print("Error in [Main] {Error With Show Disclaimer}:",e)
+        print("Error in [Main] {Error with write thread}:",e)'''
 
     try:
         thread_recieve = threading.Thread(target=receive)
@@ -221,18 +248,14 @@ def main():
         print("Error in [Main] {Error with reciever thread}:",e)
 
     try:
-        thread_write = threading.Thread(target=write)
-    except Exception as e:
-        print("Error in [Main] {Error with write thread}:",e)
-
-    try:
+        #thread_write.start()
         thread_recieve.start()
-        thread_write.start()
+        write()
     except Exception as e:
         print("Error in [Main] {Error with starting threads}:",e)
 
 if __name__ == "__main__":
-    nickname = input("Ingrese su nombre de usuario: ")
+    nickname = askName()
     if startClient():
         try:
             main()

@@ -25,7 +25,7 @@ for i in range(1000):
 '''
 
 #Example to code
-
+'''
 sg.theme('GreenTan') 
 layout = [[sg.Text('Chat', size=(40, 1))],
           [sg.Output(size=(110, 20), font=('Helvetica 10'))],
@@ -43,4 +43,46 @@ while True:
         query = value['-QUERY-'].rstrip()
         print('[Mark]: {}'.format(query), flush=True)
 
-window.close()
+window.close()'''
+
+sg.theme('DarkAmber')
+
+layout_start_menu = [[sg.Text('Write your username:')],
+                    [sg.InputText(key='NAME')],
+                    [sg.Submit(), sg.Cancel()]]
+
+window_start_menu = sg.Window('SignIn', layout_start_menu)
+
+event, values = window_start_menu.read()
+window_start_menu.close()
+text = values['NAME']
+print(values)
+
+#Ask password
+'''
+sg.theme('DarkAmber')
+
+layout_password = [[sg.Text('Type the password:')]]
+
+while True:
+    event, values = window.read()
+'''
+
+
+sg.theme('DarkAmber')
+
+layout_password = [[sg.Text('Type the password:')],
+          [sg.Input(key='-PASSWORD-')],
+          [sg.Button('Submit'), sg.Button('Exit')]]
+
+window_password = sg.Window('Request Password', layout_password)
+
+while True:  # Event Loop
+    event, values = window_password.read()
+    print(event, values)
+    if event == sg.WIN_CLOSED or event == 'Exit':
+        break
+    if event == 'Submit':
+        if(values['-PASSWORD-']!= "prueba"):
+            sg.popup("Ha entrado una contraseña incorrecta")
+window_password.close()
