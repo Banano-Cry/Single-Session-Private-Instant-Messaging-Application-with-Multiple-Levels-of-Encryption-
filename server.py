@@ -10,6 +10,7 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Encryption import KSA, PRGA, llave_to_array
 from Hash import calcHashSHA3
+from Messages import changeColor, serverCommands
 #######################################################
 #                   INITIALIZATION
 #######################################################
@@ -90,39 +91,29 @@ class serverThread(threading.Thread):
             print("The program will continue")
 
         try:
-            print("[STARTING] Server listening ...")
-            print(chr(27)+'[1;33m'+"\t\t\t\t[INFO] para ver los comandos escribir 'help' [INFO]")
-            print(chr(27)+'[0;37m',end="")
+            changeColor("[STARTING] Server listening ...",'white')
+            changeColor("\t\t\t\t[INFO] para ver los comandos escribir 'help' [INFO]",'yellow')
             while(self.status):
                 if self.status:
-                    consoleCommand = str(input(chr(27)+'[1;37m'+'\n[Server]$ '))
+                    consoleCommand = str(input('\n[Server]$ '))
                     if consoleCommand == "":
                         pass
                     elif consoleCommand == "help":
-                        print(chr(27)+'[1;33m',end="")
-                        print("\n\t[*]Lista de comandos del servidor[*]")
-                        print("\t[1]exit --> Salir del servidor")
-                        print("\t[2]count --> Cantidad de usuarios en el servidor")
-                        print("\t[3]list --> Lista a los usuarios en el servidor")
-                        print("\t[4]key --> Muestra la clave RC4 temporal")
+                        serverCommands()
 
                     elif consoleCommand == "list":
-                        print(chr(27)+'[1;33m',end="")
-                        print(f"[*] Hay {len(client_list)} usuarios en el servidor [*]")
+                        changeColor(f"[*] Hay {len(client_list)} usuarios en el servidor [*]",'yellow')
 
                     elif consoleCommand == "count":
-                        print(chr(27)+'[1;33m',end="")
-                        print("[*] Los usuarios conectados actualmente son: [*]")
+                        changeColor("[*] Los usuarios conectados actualmente son: [*]",'yellow')
                         for num, name in enumerate(nicknames):
-                            print(f"[{num + 1}] {name}")
+                            print(f"[{num + 1}] {name.decode(FORMAT)}")
 
                     elif consoleCommand == "key":
-                        print(chr(27)+'[1;33m',end="")
-                        print(f"[*] La clave RC4 actual es '{clave_rc4}' [*]")
+                        changeColor(f"[*] La clave RC4 actual es '{clave_rc4}' [*]",'yellow')
 
                     elif consoleCommand == "exit":
-                        print(chr(27)+'[1;31m',end="")
-                        print("[-] Apagando servidor")
+                        changeColor("[-] Apagando servidor",'red')
                         serverThread.status = False
                         server.close()
                         os._exit(0)
@@ -142,9 +133,7 @@ def close(client):
         index = client_list.index(client)
         client_list.remove(client)
         nickname = nicknames[index]
-        print(chr(27)+'[1;31m',end="")
-        print(f"[-] Se ha desconectado {nickname}...")
-        print(chr(27)+'[0;37m',end="")
+        changeColor(f"[-] Se ha desconectado {nickname}...",'red')
         broadcast(f"{nickname} ha dejado el chat...".encode(FORMAT))
         nicknames.remove(nickname)
         client.close()
@@ -158,8 +147,7 @@ def handle_client(client):
             if message == b"":
                 close(client)
                 break
-            print(chr(27)+'[1;33m',end="")
-            print(f"$ {nicknames[client_list.index(client)]}")
+            changeColor(f"$ {nicknames[client_list.index(client)]}",'yellow')
             message =  str.encode("enc*") + message
             broadcast(message)
 
@@ -188,9 +176,7 @@ def negotiationRC4(client, addr):
             if attempt == 2:
                 client.send("500".encode(FORMAT))
                 client.close()
-                print(chr(27)+'[1;31m',end="")
-                print(f"[LOG:{datetime.datetime.now()}] Un usuario ha fallado muchas veces la clave RC4 [LOG]")
-                print(chr(27)+'[0;37m',end="")
+                changeColor(f"[LOG:{datetime.datetime.now()}] Un usuario ha fallado muchas veces la clave RC4 [LOG]",'red')
                 return False
             elif rc4 == calcHashSHA3(clave_rc4):
                 client.send("200".encode(FORMAT))
@@ -198,7 +184,7 @@ def negotiationRC4(client, addr):
             else:
                 client.send("400".encode(FORMAT))
                 attempt+=1
-        return False
+
     except Exception as e:
         print("Error in [NegotiationRC4]:",e)
         
@@ -256,8 +242,7 @@ def receive():
                     except Exception as e:
                         print("Error in [Receive]{Error with ACK message}:",e)
 
-                    print(chr(27)+'[1;32m',end="")
-                    print(f"[+] {nickname} ha entrado al chat!")
+                    changeColor(f"[+] {nickname.decode(FORMAT)} ha entrado al chat!",'green')
                     broadcast(f"{nickname} ha entrado al chat!\n".encode(FORMAT))
 
                     try:

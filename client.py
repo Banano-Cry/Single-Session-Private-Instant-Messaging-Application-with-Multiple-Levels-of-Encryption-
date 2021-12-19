@@ -10,13 +10,13 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Encryption import llave_to_array
 from Hash import calcHashMD5, calcHashSHA3, checkHashMD5
-from Messages import commands, disclaimer, integridadComprometida
+from Messages import changeColor, commands, disclaimer, integridadComprometida
 from server import PRGA, KSA
 
 try:
-    PORT = 19188
+    PORT = 8080
     FORMAT = 'utf-8'
-    SERVER = "6.tcp.ngrok.io"
+    SERVER = "127.0.0.1"
     ADDR = (SERVER,PORT)
     LlavePrivada = None
     LlaveSim = None
@@ -41,7 +41,7 @@ def write():
             try:
                 msg = msg + calcHashMD5(msg)
                 msg = encriptarMsg(msg,LlaveSim)
-                data = f"$ {nickname}: {msg}"
+                data = f"[{nickname}]: {msg}"
                 client.send(data.encode(FORMAT))
 
             except Exception as e:
@@ -80,24 +80,20 @@ def receive():
                 elif msg.split("*",1)[0] == "enc":
                     try:
                         nick, msg = desencriptarMsg(msg,LlaveSim)
-                        if nick.split(" ")[1] == nickname:
-                            print(chr(27) + '[1;33m',end="")
+                        if nick.strip('[]') == nickname:
+                            changeColor(f"{nick}: {msg}",'yellow')
                         else:
-                            print(chr(27) + '[1;35m',end="")
-                        print(f"{nick}: {msg}")
-                        print(chr(27)+'[0;37m',end="")
+                            changeColor(f"{nick}: {msg}",'purple')
                     except Exception as e:
                         print("Error in [Receive] {Error with decrypting message}:",e)
 
                 else:
                     if(len(msg) == 0):
-                        print(chr(27)+'[1;31m',end="")
-                        print("[-] Servidor desconectado")
+                        changeColor("[-] Servidor desconectado",'red')
                         client.close()
                         os._exit(0)
                     else:
-                        print(chr(27)+'[0;37m',end="")
-                        print(msg)
+                        changeColor(msg,'white')
 
             except Exception as e:
                 print("Error in [Receive] {Error in if structure}:",e)
@@ -153,7 +149,6 @@ def desencriptarMsg(msg, LlaveSimetrica):
         verify, msg = checkHashMD5(decrypted)
         if verify:
             integridadComprometida(client)
-            print(chr(27)+'[0;37m',end="")
         return nick, msg
 
     except Exception as e:
@@ -161,6 +156,7 @@ def desencriptarMsg(msg, LlaveSimetrica):
 
 def sendRC4():
     global clave_rc4
+    codeNumber = -1
     while True:
         try:
             print(chr(27)+'[0;37m',end="")
@@ -169,7 +165,7 @@ def sendRC4():
                 client.send(calcHashSHA3(clave_rc4).encode(FORMAT))
             except Exception as e:
                 print("Error in [SendRC4] {client.send(calcHashSHA3(clave_rc4).encode(FORMAT))}:",e)
-
+    
             try:
                 codeNumber = int(client.recv(50).decode(FORMAT))
             except Exception as e:
@@ -179,12 +175,10 @@ def sendRC4():
                 if codeNumber == 200:
                     return True
                 elif codeNumber == 400:
-                    print(chr(27)+'[1;33m',end="")
-                    print("[-] Clave incorrecta")
+                    changeColor("[-] Clave incorrecta",'yellow')
                     continue
                 elif codeNumber == 500:
-                    print(chr(27)+'[1;31m',end="")
-                    print("[-] El servidor te desconecto")
+                    changeColor("[-] El servidor te desconecto",'red')
                     client.close()
                     os._exit(0)
             except Exception as e:
