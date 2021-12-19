@@ -2,6 +2,7 @@ import socket
 import threading
 import datetime
 import os
+from typing import Protocol
 import numpy as np
 import time
 import cryptography
@@ -11,19 +12,22 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 from Encryption import KSA, PRGA, llave_to_array
 from Hash import calcHashSHA3
 from Messages import changeColor, serverCommands
+from pyngrok import ngrok
 #######################################################
 #                   INITIALIZATION
 #######################################################
 FORMAT = 'utf-8'
 
-PORT = 8080
+PORT = 8787
 SERVER = "127.0.0.1"
+PROTOCOL = "tcp"
 ADDR = (SERVER,PORT)
 LlaveSim = None
 privateKey = None
 publicKey = None
 clave_rc4 = None
 
+url = ngrok.connect(PORT,PROTOCOL)
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server.bind(ADDR)
@@ -93,6 +97,7 @@ class serverThread(threading.Thread):
         try:
             changeColor("[STARTING] Server listening ...",'white')
             changeColor("\t\t\t\t[INFO] para ver los comandos escribir 'help' [INFO]",'yellow')
+            changeColor(f"[*] The sever user is: {str(url).split(' ')[1]} [*]",'cyan')
             while(self.status):
                 if self.status:
                     consoleCommand = str(input('\n[Server]$ '))
@@ -114,6 +119,9 @@ class serverThread(threading.Thread):
 
                     elif consoleCommand == "exit":
                         changeColor("[-] Apagando servidor",'red')
+                        print(chr(27)+'[1;37m',end="")
+                        ngrok.disconnect(str(url).split(' ')[1])
+                        ngrok.kill()
                         serverThread.status = False
                         server.close()
                         os._exit(0)
