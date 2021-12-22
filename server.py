@@ -97,7 +97,9 @@ class serverThread(threading.Thread):
         try:
             changeColor("[STARTING] Server listening ...",'white')
             changeColor("\t\t\t\t[INFO] para ver los comandos escribir 'help' [INFO]",'yellow')
-            changeColor(f"[*] The sever user is: {str(url).split(' ')[1]} [*]",'cyan')
+            url_message = str(url).split(' ')[1]
+            url_message = url_message.strip('"tcp:/')
+            changeColor(f"[*] The sever user is: \"{url_message}\" [*]",'cyan')
             while(self.status):
                 if self.status:
                     consoleCommand = str(input('\n[Server]$ '))

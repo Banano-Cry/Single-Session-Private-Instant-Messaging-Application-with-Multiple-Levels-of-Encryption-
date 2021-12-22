@@ -11,14 +11,14 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 from Encryption import llave_to_array
 from Hash import calcHashMD5, calcHashSHA3, checkHashMD5
 from Messages import commands, disclaimer, integridadComprometida
-from server import PRGA, KSA
+from Encryption import PRGA, KSA
 import PySimpleGUI as sg
 
 try:
-    PORT = 8080
+    PORT = None
     FORMAT = 'utf-8'
-    SERVER = "127.0.0.1"
-    ADDR = (SERVER,PORT)
+    SERVER = None
+    ADDR = None
     LlavePrivada = None
     LlaveSim = None
     nickname = ""
@@ -32,7 +32,7 @@ except ValueError as e:
 sg.theme('DarkAmber')
 
 layout_chat_box = [[sg.Text('Chat', size=(40, 1))],
-          [sg.Output(size=(110, 20), font=('Helvetica 10'))],
+          [sg.Output(size=(110, 20), font=('Helvetica 18'))],
           [sg.Multiline(size=(70, 5), enter_submits=True, key='-QUERY-', do_not_clear=False),
            sg.Button('SEND', button_color=(sg.YELLOWS[0], sg.BLUES[0]), bind_return_key=True),
            sg.Button('EXIT', button_color=(sg.YELLOWS[0], sg.GREENS[0]))]]
@@ -42,16 +42,26 @@ window_chat_box = sg.Window('Chat window', layout_chat_box, font=('Helvetica', '
 def askName():
     layout_start_menu = [[sg.Text('Write your username:')],
                         [sg.InputText(key='-NAME-')],
-                        [sg.Submit(), sg.Button('Exit')]]
+                        [sg.Text('Write the address provided by the server: ')],
+                        [sg.InputText(key='-URL-')],
+                        [sg.Submit(), sg.Button('Exit')],
+                        [sg.StatusBar("", size=(0, 1), key='-STATUS-')]]
 
     window_start_menu = sg.Window('SignIn', layout_start_menu)
-    event, values = window_start_menu.read()
-    if event == sg.WIN_CLOSED or event == 'Exit':
-        window_start_menu.close()
-        os._exit(0)
-    name=values['-NAME-']
-    window_start_menu.close()
-    return name
+    while True:
+        state = None
+        event, values = window_start_menu.read()
+        if event == sg.WIN_CLOSED or event == 'Exit':
+            window_start_menu.close()
+            os._exit(0)
+        name=values['-NAME-']
+        url=values['-URL-']
+        if name and url:
+            window_start_menu.close()
+            return (name,url.split(':'))
+        else:
+            state = "The Username/Address must be completed"
+        window_start_menu['-STATUS-'].update(state)
 
 def write():
     while True:
@@ -229,6 +239,8 @@ def sendRC4():
     return False
 
 def startClient():
+    ADDR = (SERVER,
+            PORT)
     try:
         client.connect(ADDR)
         return sendRC4()
@@ -255,7 +267,9 @@ def main():
         print("Error in [Main] {Error with starting threads}:",e)
 
 if __name__ == "__main__":
-    nickname = askName()
+    nickname, url = askName()
+    SERVER, PORT = url
+    PORT = int(PORT)
     if startClient():
         try:
             main()

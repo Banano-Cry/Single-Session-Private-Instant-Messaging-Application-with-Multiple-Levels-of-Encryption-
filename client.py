@@ -11,17 +11,18 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 from Encryption import llave_to_array
 from Hash import calcHashMD5, calcHashSHA3, checkHashMD5
 from Messages import changeColor, commands, disclaimer, integridadComprometida
-from server import PRGA, KSA
+from Encryption import PRGA, KSA
+
+PORT = None
+FORMAT = 'utf-8'
+SERVER = None
+ADDR = None
+LlavePrivada = None
+LlaveSim = None
+nickname = ""
+clave_rc4 = None
 
 try:
-    PORT = 8080
-    FORMAT = 'utf-8'
-    SERVER = "127.0.0.1"
-    ADDR = (SERVER,PORT)
-    LlavePrivada = None
-    LlaveSim = None
-    nickname = ""
-    clave_rc4 = None
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 except ValueError as e:
@@ -188,6 +189,10 @@ def sendRC4():
             print("Error in [SendRC4]:",e)
         
 def startClient():
+    ADDR = (
+        SERVER,
+        PORT
+    )
     try:
         client.connect(ADDR)
         return sendRC4()
@@ -218,6 +223,8 @@ def main():
 
 if __name__ == "__main__":
     nickname = input("Ingrese su nombre de usuario: ")
+    SERVER,PORT = input("Ingrese la dirección entregada por el servidor: ").split(':')
+    PORT=int(PORT)
     if startClient():
         try:
             main()
