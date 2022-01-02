@@ -31,13 +31,13 @@ except ValueError as e:
 
 sg.theme('DarkAmber')
 
-layout_chat_box = [[sg.Text('Chat', size=(40, 1))],
-          [sg.Output(size=(110, 20), font=('Helvetica 18'))],
-          [sg.Multiline(size=(70, 5), enter_submits=True, key='-QUERY-', do_not_clear=False),
+layout_chat_box = [[sg.Text('Chat', size=(30, 1))],
+          [sg.Output(size=(50, 10), font=('Helvetica 18'))],
+          [sg.Multiline(size=(60, 5), enter_submits=True, key='-QUERY-', do_not_clear=False),
            sg.Button('SEND', button_color=(sg.YELLOWS[0], sg.BLUES[0]), bind_return_key=True),
            sg.Button('EXIT', button_color=(sg.YELLOWS[0], sg.GREENS[0]))]]
 
-window_chat_box = sg.Window('Chat window', layout_chat_box, font=('Helvetica', ' 13'), default_button_element_size=(8,2), use_default_focus=False)
+window_chat_box = sg.Window('Chat window', layout_chat_box, font=('Helvetica', ' 13'), default_button_element_size=(8,2), use_default_focus=False, resizable=True)
 
 def askName():
     layout_start_menu = [[sg.Text('Write your username:')],
@@ -66,8 +66,9 @@ def askName():
 def write():
     while True:
         event, value = window_chat_box.read()
-        if event in (sg.WIN_CLOSED, 'EXIT'):
+        if event == sg.WIN_CLOSED or event == 'EXIT':
             break
+
         if event == 'SEND':
             query = value['-QUERY-'].rstrip()
 
